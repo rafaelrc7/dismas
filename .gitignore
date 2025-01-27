@@ -1,0 +1,12 @@
+/.cache
+/result
+/.direnv/
+/dist-newstyle/
+/main
+/main.*
+/*.c
+/tags
+*.out
+*.log
+/bible
+

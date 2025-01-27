@@ -1,0 +1,6 @@
+packages: ./*.cabal
+
+package biblegateway
+  debug-info: True
+  optimization: False
+
