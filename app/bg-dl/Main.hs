@@ -4,11 +4,11 @@ module Main where
 
 import           Control.Applicative      (Alternative (many), (<|>))
 import           Control.Concurrent.Async (async, wait)
-import           Control.Monad            (forM, forM_)
+import           Control.Monad            (forM, forM_, unless, void)
 import           Data.Char                (isSpace)
 import           Data.Maybe               (fromJust)
 import           Data.Strings             (strTrim)
-import           Settings                 (Settings (baseDir, versionLongName, versionShortName),
+import           Settings                 (Settings (baseDir, noConfirm, versionLongName, versionShortName),
                                            parseCLIArgs)
 import           System.Directory         (createDirectoryIfMissing)
 import           Text.HTML.Scalpel        (Scraper, atDepth, chroot, chroots,
@@ -23,6 +23,10 @@ main :: IO ()
 main = do
   settings <- parseCLIArgs
   let dir = baseDir settings ++ "/" ++ versionShortName settings
+  putStrLn $ "Will download the '" ++ versionShortName settings ++ "' from the biblegateway site to '" ++ dir ++ "'"
+  unless (noConfirm settings) $ do
+    putStrLn "Press ENTER to continue or ^C to cancel..."
+    void getLine
   downloadBible dir (versionShortName settings) (versionLongName settings)
 
 ----

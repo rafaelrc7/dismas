@@ -77,6 +77,7 @@ executable bg-dl
     , strings
     , directory
     , async
+    , xdg-basedir
 
   -- Directories containing source files.
   hs-source-dirs:   app/bg-dl

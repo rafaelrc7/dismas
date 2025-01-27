@@ -1,9 +1,11 @@
 module Settings  where
 
-import           Options.Applicative (Parser, ParserInfo, argument, execParser,
-                                      fullDesc, header, help, helper, info,
-                                      metavar, progDesc, showDefault, str,
-                                      value, (<**>))
+import           Options.Applicative            (Parser, ParserInfo, execParser,
+                                                 fullDesc, header, help, helper,
+                                                 info, long, metavar, progDesc,
+                                                 short, showDefault, strOption,
+                                                 switch, value, (<**>))
+import           System.Environment.XDG.BaseDir (getUserDataDir)
 
 
 defaultLongName :: String
@@ -16,40 +18,54 @@ data Settings = Settings
   { baseDir          :: FilePath
   , versionShortName :: String
   , versionLongName  :: String
+  , noConfirm        :: Bool
   }
  deriving (Show, Eq)
 
 parseCLIArgs :: IO Settings
-parseCLIArgs = execParser opts
+parseCLIArgs = do
+  defaultBaseDir <- getUserDataDir "bibles"
+  execParser $ opts defaultBaseDir
 
-opts :: ParserInfo Settings
-opts = info (settingsParser <**> helper)
+opts :: FilePath -> ParserInfo Settings
+opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper)
   (  fullDesc
   <> progDesc "Download bibles from biblegateway.com"
   <> header "bg-dl" )
 
-settingsParser :: Parser Settings
-settingsParser = Settings <$> baseDirParser <*> versionShortNameParser <*> versionLongNameParser
+settingsParser :: FilePath -> Parser Settings
+settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionShortNameParser <*> versionLongNameParser <*> noConfirmParser
 
--- TODO: Default to XDG_DATA_HOME
-baseDirParser :: Parser FilePath
-baseDirParser = argument str
-     ( metavar "BASE DIR"
-    <> help "Base directory for bibles download. The version short name gets appended to it." )
+baseDirParser :: FilePath -> Parser FilePath
+baseDirParser defaultBaseDir = strOption
+     ( long "base-dir"
+    <> short 'd'
+    <> metavar "BASE DIR"
+    <> value defaultBaseDir
+    <> help "Use BASE DIR as base directory for bibles download. The short version name gets appended to it."
+    <> showDefault )
 
 versionShortNameParser :: Parser String
-versionShortNameParser = argument str
-     ( metavar "VERSION SHORT"
-    <> help "Short version name, found in the search window url"
-    <> showDefault
-    <> value defaultShortName )
+versionShortNameParser = strOption
+     ( long "short-name"
+    <> short 's'
+    <> metavar "NAME"
+    <> value defaultShortName
+    <> help "Use NAME as the short version name, found in the search window url"
+    <> showDefault )
 
 versionLongNameParser :: Parser String
-versionLongNameParser = argument str
-     ( metavar "VERSION LONG"
-    <> help "Long version name, found in the book list url"
-    <> showDefault
-    <> value defaultLongName )
+versionLongNameParser = strOption
+     ( long "long-name"
+    <> short 's'
+    <> metavar "NAME"
+    <> value defaultLongName
+    <> help "Use NAME as the long version name, found in the book list url"
+    <> showDefault )
 
-foo :: IO FilePath
-foo = return "foo"
+noConfirmParser :: Parser Bool
+noConfirmParser = switch
+    ( long "no-confirm"
+   <> short 'y'
+   <> help "Do not prompt for download confirmation" )
+
