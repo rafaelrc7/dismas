@@ -64,6 +64,7 @@ executable bg-dl
 
   -- Modules included in this executable, other than Main.
   other-modules:
+      Settings
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -73,7 +74,6 @@ executable bg-dl
     , base                  ^>=4.18.2.1
     , optparse-applicative  ^>=0.18.1.0
     , scalpel
-    , containers
     , strings
     , directory
     , async

@@ -5,8 +5,11 @@ module Main where
 import           Control.Applicative      (Alternative (many), (<|>))
 import           Control.Concurrent.Async (async, wait)
 import           Control.Monad            (forM, forM_)
+import           Data.Char                (isSpace)
 import           Data.Maybe               (fromJust)
 import           Data.Strings             (strTrim)
+import           Settings                 (Settings (baseDir, versionLongName, versionShortName),
+                                           parseCLIArgs)
 import           System.Directory         (createDirectoryIfMissing)
 import           Text.HTML.Scalpel        (Scraper, atDepth, chroot, chroots,
                                            hasClass, html, inSerial, scrapeURL,
@@ -16,14 +19,11 @@ import           Text.HTML.Scalpel        (Scraper, atDepth, chroot, chroots,
 type Verse = String
 type Chapter = [Verse]
 
-longName :: String
-longName = "Revised-Standard-Version-Catholic-Edition-RSVCE-Bible"
-
-shortName :: String
-shortName = "RSVCE"
-
 main :: IO ()
-main = downloadBible "./bible/rsvce" shortName longName
+main = do
+  settings <- parseCLIArgs
+  let dir = baseDir settings ++ "/" ++ versionShortName settings
+  downloadBible dir (versionShortName settings) (versionLongName settings)
 
 ----
 
@@ -37,7 +37,9 @@ scrapeBibleBooks version = scrapeURL link booksScraper
                            _ <- stepNext $ html "span" -- skip dropdown
                            book <- strTrim <$> stepNext (text textSelector)
                            chapters <- stepNext $ text "span"
-                           return (book, read chapters)
+                           return (removeSpaces book, read chapters)
+
+        removeSpaces = filter (not . isSpace)
 
 scrapeBookChapter :: String -> String -> String -> IO (Maybe Chapter)
 scrapeBookChapter version book chapter = scrapeURL link chapterScraper
@@ -60,27 +62,29 @@ scrapeBookChapter version book chapter = scrapeURL link chapterScraper
 ----
 
 downloadBible :: String -> String -> String -> IO ()
-downloadBible baseDir versionShort versionLong = do
+downloadBible dir versionShort versionLong = do
   ret <- scrapeBibleBooks versionLong
   case ret of
     Nothing    -> return ()
     Just books -> do
-      bookThreads <- forM books (async . uncurry (downloadBook baseDir versionShort))
+      bookThreads <- forM books (async . uncurry (downloadBook dir versionShort))
       mapM_ wait bookThreads
 
 downloadBook :: String -> String -> String -> Int -> IO ()
-downloadBook baseDir version bookName bookSize = do
+downloadBook dir version bookName bookSize = do
     putStrLn $ "Downloading " ++ bookName ++ "..."
     createDirectory directory
-    forM_ [1..bookSize] (downloadBookChapter baseDir version bookName)
-  where directory = baseDir ++ "/" ++ bookName
+    forM_ [1..bookSize] (downloadBookChapter dir version bookName)
+  where directory = dir ++ "/" ++ bookName
 
 downloadBookChapter :: String -> String -> String -> Int -> IO ()
-downloadBookChapter baseDir version bookName chapterNum = do
+downloadBookChapter dir version bookName chapterNum = do
     chapter <- scrapeBookChapter version bookName chapterName
     writeFile file $ unlines (fromJust chapter)
   where chapterName = show chapterNum
-        file = baseDir ++ "/" ++ bookName ++ "/" ++ chapterName
+        file = dir ++ "/" ++ bookName ++ "/" ++ chapterName
+
+----
 
 createDirectory :: FilePath -> IO ()
 createDirectory = createDirectoryIfMissing True
