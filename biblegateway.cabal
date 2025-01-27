@@ -93,6 +93,7 @@ executable bg-rd
 
   -- Modules included in this executable, other than Main.
   other-modules:
+      Settings
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -101,9 +102,8 @@ executable bg-rd
   build-depends:
     , base                  ^>=4.18.2.1
     , optparse-applicative  ^>=0.18.1.0
-    , containers
-    , strings
-    , directory
+    , attoparsec
+    , bytestring
 
   -- Directories containing source files.
   hs-source-dirs:   app/bg-rd
