@@ -149,5 +149,5 @@ joinVerses ((k, v):kvs) = T.intercalate " " (v:vs) : padding ++ joinVerses kvs'
         padding = replicate (leap - 1) ""
 
 cleanVerses :: [Verse] -> [Verse]
-cleanVerses = map T.strip
+cleanVerses = map (T.replace "′" "'" . T.strip)
 
