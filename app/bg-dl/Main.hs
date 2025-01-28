@@ -8,7 +8,6 @@ import           Control.Monad            (forM, forM_, unless, void)
 import           Data.Char                (isSpace)
 import           Data.Function            (on)
 import           Data.List                (sortBy)
-import           Data.Strings             (strTrim)
 import           Data.Text                (Text)
 import qualified Data.Text                as T
 import qualified Data.Text.IO             as T
@@ -55,7 +54,7 @@ scrapeBibleBooks version = do
                          seekNext $ chroot ("tr" // "td" `atDepth` 1) $ inSerial $ do
                            _ <- seekNext $ html "span" -- skip dropdown
                            _ <- stepNext $ html "span" -- skip dropdown
-                           book <- strTrim <$> stepNext (text textSelector)
+                           book <- T.strip <$> stepNext (text textSelector)
                            chapters <- stepNext $ text "span"
                            case T.decimal chapters of
                              Left _ -> return $ Left InternalError

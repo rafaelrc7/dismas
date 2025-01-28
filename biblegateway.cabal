@@ -62,10 +62,9 @@ executable bg-dl
 
   -- Other library packages from which modules are imported.
   build-depends:
-    , base                  ^>=4.18.2.1
-    , optparse-applicative  ^>=0.18.1.0
+    , base
+    , optparse-applicative
     , scalpel
-    , strings
     , directory
     , async
     , regex-tdfa
@@ -94,8 +93,8 @@ executable bg-rd
 
   -- Other library packages from which modules are imported.
   build-depends:
-    , base                  ^>=4.18.2.1
-    , optparse-applicative  ^>=0.18.1.0
+    , base
+    , optparse-applicative
     , attoparsec
     , bytestring
     , directory
