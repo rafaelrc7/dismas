@@ -2,13 +2,12 @@
 
 module Settings  where
 
-import           Data.Text                      (Text)
-import           Options.Applicative            (Parser, ParserInfo, execParser,
-                                                 fullDesc, header, help, helper,
-                                                 info, long, metavar, progDesc,
-                                                 short, showDefault, strOption,
-                                                 switch, value, (<**>))
-import           System.Environment.XDG.BaseDir (getUserDataDir)
+import           Data.Text           (Text)
+import           Options.Applicative (Parser, ParserInfo, execParser, fullDesc,
+                                      header, help, helper, info, long, metavar,
+                                      progDesc, short, showDefault, strOption,
+                                      switch, value, (<**>))
+import           System.Directory    (XdgDirectory (XdgData), getXdgDirectory)
 
 defaultLongName :: Text
 defaultLongName = "Revised-Standard-Version-Catholic-Edition-RSVCE-Bible"
@@ -26,7 +25,7 @@ data Settings = Settings
 
 parseCLIArgs :: IO Settings
 parseCLIArgs = do
-  defaultBaseDir <- getUserDataDir "bibles"
+  defaultBaseDir <- getXdgDirectory XdgData "bibles"
   execParser $ opts defaultBaseDir
 
 opts :: FilePath -> ParserInfo Settings

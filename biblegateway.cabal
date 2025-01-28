@@ -77,7 +77,6 @@ executable bg-dl
     , strings
     , directory
     , async
-    , xdg-basedir
     , regex-tdfa
     , text
     , containers
