@@ -1,5 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Settings  where
 
+import           Data.Text                      (Text)
 import           Options.Applicative            (Parser, ParserInfo, execParser,
                                                  fullDesc, header, help, helper,
                                                  info, long, metavar, progDesc,
@@ -7,17 +10,16 @@ import           Options.Applicative            (Parser, ParserInfo, execParser,
                                                  switch, value, (<**>))
 import           System.Environment.XDG.BaseDir (getUserDataDir)
 
-
-defaultLongName :: String
+defaultLongName :: Text
 defaultLongName = "Revised-Standard-Version-Catholic-Edition-RSVCE-Bible"
 
-defaultShortName :: String
+defaultShortName :: Text
 defaultShortName = "RSVCE"
 
 data Settings = Settings
   { baseDir          :: FilePath
-  , versionShortName :: String
-  , versionLongName  :: String
+  , versionShortName :: Text
+  , versionLongName  :: Text
   , noConfirm        :: Bool
   }
  deriving (Show, Eq)
@@ -45,7 +47,7 @@ baseDirParser defaultBaseDir = strOption
     <> help "Use BASE DIR as base directory for bibles download. The short version name gets appended to it."
     <> showDefault )
 
-versionShortNameParser :: Parser String
+versionShortNameParser :: Parser Text
 versionShortNameParser = strOption
      ( long "short-name"
     <> short 's'
@@ -54,7 +56,7 @@ versionShortNameParser = strOption
     <> help "Use NAME as the short version name, found in the search window url"
     <> showDefault )
 
-versionLongNameParser :: Parser String
+versionLongNameParser :: Parser Text
 versionLongNameParser = strOption
      ( long "long-name"
     <> short 's'
