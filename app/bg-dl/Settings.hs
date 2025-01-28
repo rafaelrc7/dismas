@@ -3,10 +3,13 @@
 module Settings  where
 
 import           Data.Text           (Text)
+import           Data.Version        (showVersion)
 import           Options.Applicative (Parser, ParserInfo, execParser, fullDesc,
                                       header, help, helper, info, long, metavar,
-                                      progDesc, short, showDefault, strOption,
-                                      switch, value, (<**>))
+                                      progDesc, short, showDefault,
+                                      simpleVersioner, strOption, switch, value,
+                                      (<**>))
+import           Paths_biblegateway  (version)
 import           System.Directory    (XdgDirectory (XdgData), getXdgDirectory)
 
 defaultLongName :: Text
@@ -14,6 +17,9 @@ defaultLongName = "Revised-Standard-Version-Catholic-Edition-RSVCE-Bible"
 
 defaultShortName :: Text
 defaultShortName = "RSVCE"
+
+versionStr :: String
+versionStr = "biblegateway " <> showVersion version
 
 data Settings = Settings
   { baseDir          :: FilePath
@@ -29,7 +35,7 @@ parseCLIArgs = do
   execParser $ opts defaultBaseDir
 
 opts :: FilePath -> ParserInfo Settings
-opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper)
+opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper <**> simpleVersioner versionStr)
   (  fullDesc
   <> progDesc "Download bibles from biblegateway.com"
   <> header "bg-dl" )

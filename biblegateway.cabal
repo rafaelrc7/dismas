@@ -1,4 +1,4 @@
-cabal-version:   3.0
+cabal-version: 3.0
 
 -- The cabal-version field refers to the version of the .cabal specification,
 -- and can be different from the cabal-install (the tool) version and the
@@ -12,36 +12,37 @@ cabal-version:   3.0
 --   http://haskell.org/cabal/users-guide/
 --
 -- The name of the package.
-name:            biblegateway
+name:          biblegateway
 
 -- The package version.
 -- See the Haskell package versioning policy (PVP) for standards
 -- guiding when and how versions should be incremented.
 -- https://pvp.haskell.org
--- PVP summary:+-+------- breaking API changes
---             | | +----- non-breaking API additions
---             | | | +--- code changes with no API change
-version:         1.0.0
+--   summary:+-+------- breaking API changes
+--           | | +----- non-breaking API additions
+--           | | | +--- code changes with no API change
+version:       1.0.0
 
 -- A short (one-line) description of the package.
-synopsis: Holy Bible scraper and reader
+synopsis:      Holy Bible scraper and reader
 
 -- A longer description of the package.
-description: Package of two binaries, for scraping bibles from the biblegateway website and reading it using book:chapter:verse refereces
+description:
+  Package of two binaries, for scraping bibles from the biblegateway website and reading it using book:chapter:verse refereces
 
 -- The license under which the package is released.
-license:         MIT
+license:       MIT
 
 -- The file containing the license text.
-license-file:    LICENCE
+license-file:  LICENCE
+copyright:     Copyright (C) 2025 Rafael Carvalho
 
 -- The package author(s).
-author:          rafaelrc7
+author:        rafaelrc7
 
 -- An email address to which users can send suggestions, bug reports, and patches.
-maintainer:      contact@rafaelrc.com
-
-build-type:      Simple
+maintainer:    contact@rafaelrc.com
+build-type:    Simple
 
 common warnings
   ghc-options: -Wall
@@ -55,21 +56,22 @@ executable bg-dl
 
   -- Modules included in this executable, other than Main.
   other-modules:
-      Settings
+    Paths_biblegateway
+    Settings
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
   build-depends:
-    , base
-    , optparse-applicative
-    , scalpel
-    , directory
     , async
-    , regex-tdfa
-    , text
+    , base
     , containers
+    , directory
+    , optparse-applicative
+    , regex-tdfa
+    , scalpel
+    , text
 
   -- Directories containing source files.
   hs-source-dirs:   app/bg-dl
@@ -86,18 +88,20 @@ executable bg-rd
 
   -- Modules included in this executable, other than Main.
   other-modules:
-      Settings
+    Paths_biblegateway
+    Settings
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
   build-depends:
-    , base
-    , optparse-applicative
     , attoparsec
+    , base
     , bytestring
     , directory
+    , optparse-applicative
+    , prettyprinter
     , text
 
   -- Directories containing source files.
@@ -105,4 +109,3 @@ executable bg-rd
 
   -- Base language which the package is written in.
   default-language: Haskell2010
-

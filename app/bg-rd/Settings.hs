@@ -9,14 +9,18 @@ import qualified Data.ByteString.Char8            as B8
 import           Data.Char                        (ord)
 import           Data.Text                        (Text)
 import qualified Data.Text                        as T
+import           Data.Version                     (showVersion)
 import           Options.Applicative              (Alternative (many, some, (<|>)),
                                                    Parser, ParserInfo, ReadM,
                                                    argument, eitherReader,
-                                                   execParser, fullDesc, header,
-                                                   help, helper, info, long,
-                                                   metavar, progDesc, short,
-                                                   showDefault, strOption,
+                                                   execParser, footerDoc,
+                                                   fullDesc, header, help,
+                                                   helper, info, long, metavar,
+                                                   progDesc, short, showDefault,
+                                                   simpleVersioner, strOption,
                                                    value, (<**>))
+import           Paths_biblegateway               (version)
+import           Prettyprinter                    (Pretty (pretty))
 import           System.Directory                 (XdgDirectory (XdgData),
                                                    getXdgDirectory)
 
@@ -26,6 +30,9 @@ type Verse = Int
 
 defaultVersionName :: Text
 defaultVersionName = "RSVCE"
+
+versionStr :: String
+versionStr = "biblegateway " <> showVersion version
 
 data Reference = Book Book
                | BookChapter Book Chapter
@@ -48,10 +55,28 @@ parseCLIArgs = do
   execParser $ opts defaultBaseDir
 
 opts :: FilePath -> ParserInfo Settings
-opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper)
-  (  fullDesc
+opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper <**> simpleVersioner versionStr)
+   ( fullDesc
   <> header "Bible reader"
-  <> progDesc "Read offline holy bible" )
+  <> progDesc "Read offline holy bible"
+  <> footerDoc (Just  (pretty referenceHelp)) )
+  where referenceHelp :: String
+        referenceHelp =
+          "\
+           \Reference:\n\
+           \    <Book>\n\
+           \        Individual book\n\
+           \    <Book>:<Chapter>\n\
+           \        Individual chapter of a book\n\
+           \    <Book>:<Chapter>:<Verse>[,<Verse>]...\n\
+           \        Individual verse(s) of a specific chapter of a book\n\
+           \    <Book>:<Chapter>-<Chapter>\n\
+           \        Range of chapters in a book\n\
+           \    <Book>:<Chapter>:<Verse>-<Verse>\n\
+           \        Range of verses in a book chapter\n\
+           \    <Book>:<Chapter>:<Verse>-<Chapter>:<Verse>\n\
+           \        Range of chapters and verses in a book\
+           \"
 
 settingsParser :: FilePath -> Parser Settings
 settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionNameParser <*> referenceParser
@@ -60,9 +85,9 @@ baseDirParser :: FilePath -> Parser FilePath
 baseDirParser defaultBaseDir = strOption
      ( long "base-dir"
     <> short 'd'
-    <> metavar "BASE DIR"
+    <> metavar "DIR"
     <> value defaultBaseDir
-    <> help "Use BASE DIR as base directory for bibles. The version name gets appended to it."
+    <> help "Use DIR as base directory for bibles. The version name gets appended to it."
     <> showDefault )
 
 versionNameParser :: Parser Text
@@ -75,7 +100,10 @@ versionNameParser = strOption
     <> showDefault )
 
 referenceParser :: Parser [Reference]
-referenceParser = some (argument parseReference (metavar "REFERENCE"))
+referenceParser = some $ argument parseReference
+     ( metavar "REFERENCE..." )
+
+
 
 parseReference :: ReadM Reference
 parseReference = eitherReader (A.parseOnly reference . B8.pack)
