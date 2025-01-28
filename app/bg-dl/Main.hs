@@ -140,7 +140,7 @@ re = Text.Regex.TDFA.makeRegex
 
 joinVerses :: [(Int, Verse)] -> [Verse]
 joinVerses [] = []
-joinVerses ((k, v):kvs) = T.concat (v:vs) : padding ++ joinVerses kvs'
+joinVerses ((k, v):kvs) = T.intercalate " " (v:vs) : padding ++ joinVerses kvs'
   where (vs', kvs') = span (\(k', _) -> k == k') kvs
         vs = map snd vs'
         leap = case kvs' of
