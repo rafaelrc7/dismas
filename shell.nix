@@ -1,16 +1,16 @@
 { pkgs ? import <nixpkgs> { }, devTools ? true }:
 let
-  haskell = pkgs.haskellPackages.extend
+  haskell = pkgs.haskell.packages.ghc910.extend
     (final: prev: { biblegateway = pkgs.callPackage ./default.nix { }; });
 in
 haskell.shellFor {
   packages = p: [ p.biblegateway ];
-  nativeBuildInputs = with pkgs;
-    [ zlib ghc cabal-install ] ++ lib.optional devTools [
-      hlint
-      ormolu
-      (ghc.withPackages (p: [ p.haskell-language-server p.haskell-dap p.haskell-debug-adapter p.ghci-dap ]))
-      gcc
+  nativeBuildInputs =
+    [ pkgs.zlib haskell.ghc haskell.cabal-install ] ++ pkgs.lib.optional devTools [
+      pkgs.hlint
+      pkgs.ormolu
+      pkgs.gcc
+      (haskell.ghc.withPackages (p: [ p.haskell-language-server p.haskell-dap p.haskell-debug-adapter p.ghci-dap ]))
     ];
 }
 
