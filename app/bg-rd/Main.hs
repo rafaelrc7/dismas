@@ -26,10 +26,10 @@ main = do
     hPutStrLn stderr $ "Selected bible '" ++ bibleDir ++ "' does not exist"
     exitFailure
 
-  ret <- getReferece bibleDir (bibleReference settings)
+  ret <- mapM (getReferece bibleDir) (bibleReference settings)
 
-  case ret of
-    Right txt -> T.putStrLn txt
+  case sequence ret of
+    Right txts -> mapM_ T.putStrLn txts
     Left err -> do
       case err of
         InvalidBook book ->
@@ -51,8 +51,8 @@ getReferece biblePath (Book book) = do
       chapters <- getBookChapters path
       let chaptersPaths = map (\chapter -> path ++ "/" ++ chapter) chapters
       chaptersTexts <- mapM T.readFile chaptersPaths
-      let chaptersTexts' = addChapterNumbers $ map addVerseNumbers chaptersTexts
-      return $ Right $ T.unlines chaptersTexts'
+      let chaptersTexts' = addBookName book $ T.unlines $ addChapterNumbers $ map addVerseNumbers chaptersTexts
+      return $ Right chaptersTexts'
 getReferece biblePath (BookChapter book chapter) = do
   path' <- getBookPath biblePath book
   case path' of
@@ -65,7 +65,7 @@ getReferece biblePath (BookChapter book chapter) = do
       else do
         let chapterPath = path ++ "/" ++ chapter'
         chapterText <- T.readFile chapterPath
-        let chapterText' = addChapterNumber chapter $ addVerseNumbers chapterText
+        let chapterText' = addBookName book $ addChapterNumber chapter $ addVerseNumbers chapterText
         return $ Right chapterText'
 getReferece biblePath (BookChapterRange book chapter1 chapter2) = do
   path' <- getBookPath biblePath book
@@ -83,8 +83,8 @@ getReferece biblePath (BookChapterRange book chapter1 chapter2) = do
         let selectedChapters = [chapter1..chapter2]
         let chaptersPaths = map (\chapter -> path ++ "/" ++ show chapter) selectedChapters
         chaptersTexts <- mapM T.readFile chaptersPaths
-        let chaptersTexts' = addChapterNumbersFrom chapter1 $ map addVerseNumbers chaptersTexts
-        return $ Right $ T.unlines chaptersTexts'
+        let chaptersTexts' = addBookName book $ T.unlines $ addChapterNumbersFrom chapter1 $ map addVerseNumbers chaptersTexts
+        return $ Right chaptersTexts'
 getReferece biblePath (BookChapterVerses book chapter verses) = do
   path' <- getBookPath biblePath book
   case path' of
@@ -107,7 +107,7 @@ getReferece biblePath (BookChapterVerses book chapter verses) = do
                         verses
         case verses' of
           Left err         -> return $ Left err
-          Right versesText -> return $ Right $ addChapterNumber chapter $ T.unlines $ addVersesNumbers versesText
+          Right versesText -> return $ Right $ addBookName book $ addChapterNumber chapter $ T.unlines $ addVersesNumbers versesText
 getReferece biblePath (BookChapterVerseRange book chapter verse1 verse2) = do
   path' <- getBookPath biblePath book
   case path' of
@@ -128,7 +128,7 @@ getReferece biblePath (BookChapterVerseRange book chapter verse1 verse2) = do
           return $ Left (InvalidVerse book (T.pack $ show chapter) (T.pack $ show verse2))
         else do
           let versesText = T.unlines $ take (verse2-verse1+1) $ drop (verse1-1) chapterVerses
-          let versesText' = addChapterNumber chapter $ addVerseNumbersFrom verse1 versesText
+          let versesText' = addBookName book $ addChapterNumber chapter $ addVerseNumbersFrom verse1 versesText
           return $ Right versesText'
 getReferece biblePath (BookChaptersVerseRange book chapter1 verse1 chapter2 verse2) = do
   path' <- getBookPath biblePath book
@@ -164,11 +164,11 @@ getReferece biblePath (BookChaptersVerseRange book chapter1 verse1 chapter2 vers
               let chapter2Verses' = addVerseNumbers $ T.unlines $ take verse2     chapter2Verses
               let remainingChapters = map addVerseNumbers $ take (chaptersTextsSize-2) $ drop 1 chaptersTexts
               let selectedVerses = chapter1Verses' : remainingChapters ++ [chapter2Verses']
-              let selectedVerses' = addChapterNumbersFrom chapter1 selectedVerses
-              return $ Right $ T.unlines selectedVerses'
+              let selectedVerses' = addBookName book $ T.unlines $ addChapterNumbersFrom chapter1 selectedVerses
+              return $ Right selectedVerses'
             else do
               let versesText = T.unlines $ take (verse2-verse1+1) $ drop (verse1-1) chapter1Verses
-              let versesText' = addChapterNumber chapter1 $ addVerseNumbersFrom verse1 versesText
+              let versesText' = addBookName book $ addChapterNumber chapter1 $ addVerseNumbersFrom verse1 versesText
               return $ Right versesText'
 
 getBookPath :: FilePath -> Text -> IO (Either Error FilePath)
@@ -206,4 +206,7 @@ addChapterNumbersFrom start chapters = chapters''
 
 addChapterNumber :: Int -> Text -> Text
 addChapterNumber chapter chapterText = "Chapter " <> T.pack (show chapter) <> "\n" <> chapterText
+
+addBookName :: Text -> Text -> Text
+addBookName book text = "Book of " <> book <> "\n\n" <> text
 

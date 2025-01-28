@@ -9,7 +9,7 @@ import qualified Data.ByteString.Char8            as B8
 import           Data.Char                        (ord)
 import           Data.Text                        (Text)
 import qualified Data.Text                        as T
-import           Options.Applicative              (Alternative (many, (<|>)),
+import           Options.Applicative              (Alternative (many, some, (<|>)),
                                                    Parser, ParserInfo, ReadM,
                                                    argument, eitherReader,
                                                    execParser, fullDesc, header,
@@ -38,7 +38,7 @@ data Reference = Book Book
 data Settings = Settings
   { baseDir        :: FilePath
   , bibleVersion   :: Text
-  , bibleReference :: Reference
+  , bibleReference :: [Reference]
   }
  deriving (Show, Eq)
 
@@ -74,8 +74,8 @@ versionNameParser = strOption
     <> help "Use NAME as the version name"
     <> showDefault )
 
-referenceParser :: Parser Reference
-referenceParser = argument parseReference (metavar "REFERENCE")
+referenceParser :: Parser [Reference]
+referenceParser = some (argument parseReference (metavar "REFERENCE"))
 
 parseReference :: ReadM Reference
 parseReference = eitherReader (A.parseOnly reference . B8.pack)
