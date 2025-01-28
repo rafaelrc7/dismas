@@ -5,18 +5,27 @@ module Settings  where
 import           Data.Attoparsec.ByteString       (takeTill)
 import qualified Data.Attoparsec.ByteString       as A
 import           Data.Attoparsec.ByteString.Char8 (char, decimal)
-import           Data.ByteString.Char8            (pack, strip, unpack)
+import qualified Data.ByteString.Char8            as B8
 import           Data.Char                        (ord)
+import           Data.Text                        (Text)
+import qualified Data.Text                        as T
 import           Options.Applicative              (Alternative (many, (<|>)),
                                                    Parser, ParserInfo, ReadM,
                                                    argument, eitherReader,
                                                    execParser, fullDesc, header,
-                                                   helper, info, metavar,
-                                                   progDesc, str, (<**>))
+                                                   help, helper, info, long,
+                                                   metavar, progDesc, short,
+                                                   showDefault, strOption,
+                                                   value, (<**>))
+import           System.Directory                 (XdgDirectory (XdgData),
+                                                   getXdgDirectory)
 
-type Book = String
+type Book = Text
 type Chapter = Int
 type Verse = Int
+
+defaultVersionName :: Text
+defaultVersionName = "RSVCE"
 
 data Reference = Book Book
                | BookChapter Book Chapter
@@ -26,33 +35,50 @@ data Reference = Book Book
                | BookChaptersVerseRange Book Chapter Verse Chapter Verse
  deriving (Show, Eq)
 
-
 data Settings = Settings
-  { biblePath :: FilePath
-  , selector  :: Reference
+  { baseDir        :: FilePath
+  , bibleVersion   :: Text
+  , bibleReference :: Reference
   }
  deriving (Show, Eq)
 
 parseCLIArgs :: IO Settings
-parseCLIArgs = execParser opts
+parseCLIArgs = do
+  defaultBaseDir <- getXdgDirectory XdgData "bibles"
+  execParser $ opts defaultBaseDir
 
-opts :: ParserInfo Settings
-opts = info (settingsParser <**> helper)
+opts :: FilePath -> ParserInfo Settings
+opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper)
   (  fullDesc
   <> header "Bible reader"
   <> progDesc "Read offline holy bible" )
 
-settingsParser :: Parser Settings
-settingsParser = Settings <$> biblePathParser <*> referenceParser
+settingsParser :: FilePath -> Parser Settings
+settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionNameParser <*> referenceParser
 
-biblePathParser :: Parser FilePath
-biblePathParser = argument str (metavar "BIBLE_PATH")
+baseDirParser :: FilePath -> Parser FilePath
+baseDirParser defaultBaseDir = strOption
+     ( long "base-dir"
+    <> short 'd'
+    <> metavar "BASE DIR"
+    <> value defaultBaseDir
+    <> help "Use BASE DIR as base directory for bibles. The version name gets appended to it."
+    <> showDefault )
+
+versionNameParser :: Parser Text
+versionNameParser = strOption
+     ( long "version-name"
+    <> short 'n'
+    <> metavar "NAME"
+    <> value defaultVersionName
+    <> help "Use NAME as the version name"
+    <> showDefault )
 
 referenceParser :: Parser Reference
 referenceParser = argument parseReference (metavar "REFERENCE")
 
 parseReference :: ReadM Reference
-parseReference = eitherReader (A.parseOnly reference . pack)
+parseReference = eitherReader (A.parseOnly reference . B8.pack)
 
 reference :: A.Parser Reference
 reference =
@@ -69,7 +95,7 @@ reference =
         chapter = decimal
 
         book :: A.Parser Book
-        book = unpack . strip <$> takeTill (\c -> c == (fromIntegral . ord $ ':'))
+        book = T.pack . B8.unpack . B8.strip <$> takeTill (\c -> c == (fromIntegral . ord $ ':'))
 
         verseList :: A.Parser [Verse]
         verseList = (:) <$> verse <*> many (char ',' *> verse)

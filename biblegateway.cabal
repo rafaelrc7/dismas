@@ -107,6 +107,8 @@ executable bg-rd
     , optparse-applicative  ^>=0.18.1.0
     , attoparsec
     , bytestring
+    , directory
+    , text
 
   -- Directories containing source files.
   hs-source-dirs:   app/bg-rd
