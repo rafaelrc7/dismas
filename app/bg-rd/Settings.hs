@@ -10,15 +10,16 @@ import           Data.Char                        (ord)
 import           Data.Text                        (Text)
 import qualified Data.Text                        as T
 import           Data.Version                     (showVersion)
+import           Numeric.Natural                  (Natural)
 import           Options.Applicative              (Alternative (many, some, (<|>)),
                                                    Parser, ParserInfo, ReadM,
-                                                   argument, eitherReader,
+                                                   argument, auto, eitherReader,
                                                    execParser, footerDoc,
                                                    fullDesc, header, help,
                                                    helper, info, long, metavar,
-                                                   progDesc, short, showDefault,
-                                                   simpleVersioner, strOption,
-                                                   value, (<**>))
+                                                   option, progDesc, short,
+                                                   showDefault, simpleVersioner,
+                                                   strOption, value, (<**>))
 import           Paths_biblegateway               (version)
 import           Prettyprinter                    (Pretty (pretty))
 import           System.Directory                 (XdgDirectory (XdgData),
@@ -45,6 +46,7 @@ data Reference = Book Book
 data Settings = Settings
   { baseDir        :: FilePath
   , bibleVersion   :: Text
+  , textWidth      :: Natural
   , bibleReference :: [Reference]
   }
  deriving (Show, Eq)
@@ -79,7 +81,7 @@ opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper <**> simpl
            \"
 
 settingsParser :: FilePath -> Parser Settings
-settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionNameParser <*> referenceParser
+settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionNameParser <*> textWidthParser <*> referenceParser
 
 baseDirParser :: FilePath -> Parser FilePath
 baseDirParser defaultBaseDir = strOption
@@ -99,11 +101,18 @@ versionNameParser = strOption
     <> help "Use NAME as the version name"
     <> showDefault )
 
+textWidthParser :: Parser Natural
+textWidthParser = option auto
+     ( long "width"
+    <> short 'w'
+    <> metavar "WIDTH"
+    <> value 80
+    <> help "Use WIDTH as the rendered text width"
+    <> showDefault )
+
 referenceParser :: Parser [Reference]
 referenceParser = some $ argument parseReference
      ( metavar "REFERENCE..." )
-
-
 
 parseReference :: ReadM Reference
 parseReference = eitherReader (A.parseOnly reference . B8.pack)

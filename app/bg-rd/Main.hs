@@ -9,10 +9,13 @@ import           Data.Maybe                    (fromMaybe)
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as T
-import           Prettyprinter                 (Doc, annotate, fill, indent,
-                                                line, pretty, vsep, (<+>))
-import           Prettyprinter.Render.Terminal (AnsiStyle, bold, putDoc,
+import           Prettyprinter                 (Doc, LayoutOptions (..),
+                                                PageWidth (..), annotate, fill,
+                                                indent, layoutPretty, line,
+                                                nest, pretty, vsep, (<+>))
+import           Prettyprinter.Render.Terminal (AnsiStyle, bold, renderIO,
                                                 underlined)
+import           Prettyprinter.Util            (reflow)
 import           Settings                      (Book, Chapter, Reference (..),
                                                 Settings (..), Verse,
                                                 parseCLIArgs)
@@ -21,7 +24,7 @@ import           System.Directory              (doesDirectoryExist,
 import           System.Exit                   (exitFailure)
 import           System.FilePath               (dropTrailingPathSeparator,
                                                 takeBaseName, (</>))
-import           System.IO                     (hPutStrLn, stderr)
+import           System.IO                     (hPutStrLn, stderr, stdout)
 import           System.IO.Error               (isDoesNotExistError, tryIOError)
 
 data Error = InvalidBook Book
@@ -42,7 +45,9 @@ main = do
   ret <- mapM (getReferece bibleDir) (bibleReference settings)
 
   case sequence ret of
-    Right txts -> putDoc $ prettyBooks txts
+    Right txts -> do
+      let layoutOptions = LayoutOptions {layoutPageWidth = AvailablePerLine (fromIntegral (textWidth settings)) 1.0 }
+      renderIO stdout $ layoutPretty layoutOptions $ prettyBooks txts
     Left err -> do
       case err of
         InvalidBook book ->
@@ -232,7 +237,7 @@ prettyVerses verses = vsep markedVerses
         verseMarks' = map showVerseMark verseMarks
         verseMarks'' = map (indent 2 . annotate bold . fill verseMarkWidth . pretty . showVerseMark) verseMarks
         verseMarkWidth = getMaxVerseMarkWidth verseMarks' + 1
-        markedVerses = zipWith (<+>) verseMarks'' (map pretty verseTexts)
+        markedVerses = map (nest (verseMarkWidth + 3)) $ zipWith (<+>) verseMarks'' (map reflow verseTexts)
 
 prettyBook :: Text -> [((Int, Int), Text)] -> Doc AnsiStyle
 prettyBook book verses = book' <> line <> line <> verses'
