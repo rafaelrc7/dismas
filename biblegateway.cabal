@@ -100,8 +100,10 @@ executable bg-rd
     , base
     , bytestring
     , directory
+    , filepath
     , optparse-applicative
     , prettyprinter
+    , prettyprinter-ansi-terminal
     , text
 
   -- Directories containing source files.
