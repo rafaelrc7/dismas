@@ -17,31 +17,34 @@
         inputs.flake-parts.flakeModules.easyOverlay
       ];
 
-      perSystem = { config, pkgs, ... }: {
-        devShells.default = import ./shell.nix { inherit pkgs; };
+      perSystem = { config, pkgs, ... }:
+        let haskellPackages = pkgs.haskell.packages.ghc96;
+        in
+        {
+          devShells.default = import ./shell.nix { inherit pkgs haskellPackages; };
 
-        packages = rec {
-          default = biblegateway;
-          biblegateway = pkgs.callPackage ./default.nix { };
-        };
+          packages = rec {
+            default = biblegateway;
+            biblegateway = pkgs.callPackage ./default.nix { inherit haskellPackages; };
+          };
 
-        apps.default = {
-          type = "app";
-          program = "${config.packages.biblegateway}/bin/biblegateway";
-        };
+          apps.default = {
+            type = "app";
+            program = "${config.packages.biblegateway}/bin/biblegateway";
+          };
 
-        overlayAttrs = {
-          inherit (config.packages) biblegateway;
-        };
+          overlayAttrs = {
+            inherit (config.packages) biblegateway;
+          };
 
-        treefmt.config = {
-          projectRootFile = "flake.nix";
-          programs = {
-            nixpkgs-fmt.enable = true;
-            cabal-fmt.enable = true;
-            stylish-haskell.enable = true;
+          treefmt.config = {
+            projectRootFile = "flake.nix";
+            programs = {
+              nixpkgs-fmt.enable = true;
+              cabal-fmt.enable = true;
+              stylish-haskell.enable = true;
+            };
           };
         };
-      };
     };
 }

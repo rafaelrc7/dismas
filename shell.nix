@@ -1,6 +1,9 @@
-{ pkgs ? import <nixpkgs> { }, devTools ? true }:
+{ pkgs ? import <nixpkgs> { }
+, haskellPackages ? (import <nixpkgs> { }).haskellPackages
+, devTools ? true
+}:
 let
-  haskell = pkgs.haskell.packages.ghc96.extend
+  haskell = haskellPackages.extend
     (final: prev: { biblegateway = pkgs.callPackage ./default.nix { }; });
 in
 haskell.shellFor {
