@@ -15,12 +15,13 @@ import qualified Data.Text.Read           as T
 import           Settings                 (Settings (baseDir, noConfirm, versionLongName, versionShortName),
                                            parseCLIArgs)
 import           System.Directory         (createDirectoryIfMissing)
+import           System.FilePath          ((</>))
 import           System.IO                (hPutStrLn, stderr)
 import           Text.HTML.Scalpel        (Scraper, atDepth, attr, chroot,
                                            chroots, hasClass, html, inSerial,
                                            scrapeURL, seekNext, stepNext, text,
                                            textSelector, (//), (@:), (@=~))
-import           Text.Regex.TDFA
+import           Text.Regex.TDFA          (Regex, RegexMaker (makeRegex))
 
 type Verse = Text
 type Chapter = [Verse]
@@ -32,7 +33,7 @@ data Error = InvalidVerseSpan
 main :: IO ()
 main = do
   settings <- parseCLIArgs
-  let dir = baseDir settings <> "/" ++ T.unpack (versionShortName settings)
+  let dir = baseDir settings </> T.unpack (versionShortName settings)
   T.putStrLn $ "Will download the '" <> versionShortName settings <> "' from the biblegateway site to '" <> T.pack dir <> "'"
   unless (noConfirm settings) $ do
     putStrLn "Press ENTER to continue or ^C to cancel..."
@@ -118,7 +119,7 @@ downloadBook dir version bookName bookSize = do
     T.putStrLn $ "Downloading " <> bookName <> "..."
     createDirectory directory
     forM_ [1..bookSize] (downloadBookChapter dir version bookName)
-  where directory = dir ++ "/" ++ T.unpack bookName
+  where directory = dir </> T.unpack bookName
 
 downloadBookChapter :: FilePath -> Text -> Text -> Int -> IO ()
 downloadBookChapter dir version bookName chapterNum = do
@@ -127,7 +128,7 @@ downloadBookChapter dir version bookName chapterNum = do
       Left err       -> T.hPutStrLn stderr $ "Error '" <> T.pack (show err) <> "' while downloading '" <> bookName <> ":" <> T.pack (show chapterNum) <> "'"
       Right chapter' -> T.writeFile file $ T.unlines chapter'
   where chapterName = T.pack $ show chapterNum
-        file = dir ++ "/" ++ T.unpack bookName ++ "/" ++ T.unpack chapterName
+        file = dir </> T.unpack bookName </> T.unpack chapterName
 
 ----
 
