@@ -14,8 +14,9 @@ import           Prettyprinter                 (Doc, LayoutOptions (..),
                                                 PageWidth (..), annotate, fill,
                                                 indent, layoutPretty, line,
                                                 nest, pretty, vsep, (<+>))
-import           Prettyprinter.Render.Terminal (AnsiStyle, bold, renderIO,
-                                                underlined)
+import           Prettyprinter.Render.Terminal (AnsiStyle, bold, underlined)
+import qualified Prettyprinter.Render.Terminal as PPANSI
+import qualified Prettyprinter.Render.Text     as PPT
 import           Prettyprinter.Util            (reflow)
 import           Settings                      (Book, Chapter, Reference (..),
                                                 Settings (..), Verse,
@@ -26,8 +27,8 @@ import           System.Environment.Blank      (getEnv)
 import           System.Exit                   (exitFailure)
 import           System.FilePath               (dropTrailingPathSeparator,
                                                 takeBaseName, (</>))
-import           System.IO                     (hClose, hPutStrLn, stderr,
-                                                stdout)
+import           System.IO                     (hClose, hIsTerminalDevice,
+                                                hPutStrLn, stderr, stdout)
 import           System.IO.Error               (isDoesNotExistError, tryIOError)
 import           System.Process                (CreateProcess (..),
                                                 StdStream (..), proc,
@@ -55,16 +56,22 @@ main = do
     Right txts -> do
       let layoutOptions = LayoutOptions {layoutPageWidth = AvailablePerLine (fromIntegral (textWidth settings)) 1.0 }
       let txt = layoutPretty layoutOptions $ prettyBooks txts
-      pager <- getEnv "PAGER"
-      case pager of
-        Nothing     -> renderIO stdout txt
-        Just pager' -> withCreateProcess ((proc pager' []) { std_in = CreatePipe }) $ \stdin _ _ ph -> do
-          case stdin of
-            Just stdin' -> do
-              renderIO stdin' txt
-              hClose stdin'
-            Nothing -> hPutStrLn stderr $ "ERROR: Failed to write to '" <> pager' <> "' stdin"
-          void $ waitForProcess ph
+      isTerminal <- hIsTerminalDevice stdout
+      if not isTerminal then
+        PPT.renderIO stdout txt
+      else do
+        pager <- getEnv "PAGER"
+        case pager of
+          Nothing     -> PPANSI.renderIO stdout txt
+          Just pager' -> withCreateProcess ((proc pager' []) { std_in = CreatePipe }) $ \stdin _ _ ph -> do
+            case stdin of
+              Just stdin' -> do
+                PPANSI.renderIO stdin' txt
+                hClose stdin'
+                void $ waitForProcess ph
+              Nothing -> do
+                hPutStrLn stderr $ "ERROR: Failed to write to '" <> pager' <> "' stdin"
+                PPANSI.renderIO stdout txt
     Left err -> do
       case err of
         InvalidBook book ->
