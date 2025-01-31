@@ -4,6 +4,7 @@
 module Main where
 
 import           Control.Monad                 (unless, when)
+import           Data.Functor                  (void)
 import           Data.List                     (sort)
 import           Data.Maybe                    (fromMaybe)
 import           Data.Text                     (Text)
@@ -21,11 +22,17 @@ import           Settings                      (Book, Chapter, Reference (..),
                                                 parseCLIArgs)
 import           System.Directory              (doesDirectoryExist,
                                                 listDirectory)
+import           System.Environment.Blank      (getEnv)
 import           System.Exit                   (exitFailure)
 import           System.FilePath               (dropTrailingPathSeparator,
                                                 takeBaseName, (</>))
-import           System.IO                     (hPutStrLn, stderr, stdout)
+import           System.IO                     (hClose, hPutStrLn, stderr,
+                                                stdout)
 import           System.IO.Error               (isDoesNotExistError, tryIOError)
+import           System.Process                (CreateProcess (..),
+                                                StdStream (..), proc,
+                                                waitForProcess,
+                                                withCreateProcess)
 
 data Error = InvalidBook Book
            | InvalidBookChapter Book Chapter
@@ -47,7 +54,17 @@ main = do
   case sequence ret of
     Right txts -> do
       let layoutOptions = LayoutOptions {layoutPageWidth = AvailablePerLine (fromIntegral (textWidth settings)) 1.0 }
-      renderIO stdout $ layoutPretty layoutOptions $ prettyBooks txts
+      let txt = layoutPretty layoutOptions $ prettyBooks txts
+      pager <- getEnv "PAGER"
+      case pager of
+        Nothing     -> renderIO stdout txt
+        Just pager' -> withCreateProcess ((proc pager' []) { std_in = CreatePipe }) $ \stdin _ _ ph -> do
+          case stdin of
+            Just stdin' -> do
+              renderIO stdin' txt
+              hClose stdin'
+            Nothing -> hPutStrLn stderr $ "ERROR: Failed to write to '" <> pager' <> "' stdin"
+          void $ waitForProcess ph
     Left err -> do
       case err of
         InvalidBook book ->

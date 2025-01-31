@@ -104,6 +104,7 @@ executable bg-rd
     , optparse-applicative
     , prettyprinter
     , prettyprinter-ansi-terminal
+    , process
     , text
 
   -- Directories containing source files.
