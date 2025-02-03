@@ -62,7 +62,7 @@ main = do
     exitFailure
 
   let (references, searches) = partitionQueries (bibleQueries settings)
-  let layoutOptions = LayoutOptions {layoutPageWidth = AvailablePerLine (fromIntegral (textWidth settings)) 1.0 }
+  let layoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine (fromIntegral (textWidth settings)) 1.0 }
 
   retSearches <- sequence <$> mapM (getSearch bibleDir) searches
   ret <- case retSearches of
@@ -129,18 +129,14 @@ getReferece biblePath (Book book) = do
     Right path -> do
       chapters <- getChapterList path
       text <- getBook path chapters
-      case text of
-        Left err    -> return $ Left err
-        Right text' -> return $ Right (book, text')
+      return $ text >>= \text' -> Right (book, text')
 getReferece biblePath (BookChapter book chapter) = do
   path' <- getBookPath biblePath book
   case path' of
     Left err -> return $ Left err
     Right path -> do
       text <- getBook path [chapter]
-      case text of
-        Left err    -> return $ Left err
-        Right text' -> return $ Right (book, text')
+      return $ text >>= \text' -> Right (book, text')
 getReferece biblePath (BookChapterRange book chapter1 chapter2) = do
   path' <- getBookPath biblePath book
   case path' of
@@ -149,9 +145,7 @@ getReferece biblePath (BookChapterRange book chapter1 chapter2) = do
       chapters <- getChapterList path
       let selectedChapters = getChapterRange (length chapters) (Just chapter1) (Just chapter2)
       text <- getBook path selectedChapters
-      case text of
-        Left err    -> return $ Left err
-        Right text' -> return $ Right (book, text')
+      return $ text >>= \text' -> Right (book, text')
 getReferece biblePath (BookChapterVerses book chapter verses) = do
   path' <- getBookPath biblePath book
   case path' of
@@ -205,19 +199,13 @@ getSearch biblePath (SearchWhole needle) = do
     Left err        -> return $ Left err
     Right bookList' -> do
       books <- sequence <$> mapM (getReferece biblePath . Book) bookList'
-      case books of
-        Left err     -> return $ Left err
-        Right books' -> return $ Right (filterBookSearch False needle books')
+      return $ books >>= \books' -> Right (filterBookSearch False needle books')
 getSearch biblePath (SearchBook book needle) = do
-   bookTxt <- getReferece biblePath $ Book book
-   case bookTxt of
-     Left err       -> return $ Left err
-     Right bookTxt' -> return $ Right (filterBookSearch False needle [bookTxt'])
+  bookTxt <- getReferece biblePath $ Book book
+  return $ bookTxt >>= \bookTxt' -> Right (filterBookSearch False needle [bookTxt'])
 getSearch biblePath (SearchBookChapter book chapter needle) = do
-   bookTxt <- getReferece biblePath $ BookChapter book chapter
-   case bookTxt of
-     Left err       -> return $ Left err
-     Right bookTxt' -> return $ Right (filterBookSearch False needle [bookTxt'])
+  bookTxt <- getReferece biblePath $ BookChapter book chapter
+  return $ bookTxt >>= \bookTxt' -> Right (filterBookSearch False needle [bookTxt'])
 
 ----
 
