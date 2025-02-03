@@ -97,9 +97,9 @@ executable bg-rd
 
   -- Other library packages from which modules are imported.
   build-depends:
+    , alfred-margaret
     , attoparsec
     , base
-    , bytestring
     , directory
     , filepath
     , optparse-applicative

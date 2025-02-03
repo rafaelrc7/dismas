@@ -2,28 +2,22 @@
 
 module Settings  where
 
-import           Data.Attoparsec.ByteString       (takeTill)
-import qualified Data.Attoparsec.ByteString       as A
-import           Data.Attoparsec.ByteString.Char8 (char, decimal)
-import qualified Data.ByteString.Char8            as B8
-import           Data.Char                        (ord)
-import           Data.Text                        (Text)
-import qualified Data.Text                        as T
-import           Data.Version                     (showVersion)
-import           Numeric.Natural                  (Natural)
-import           Options.Applicative              (Alternative (many, some, (<|>)),
-                                                   Parser, ParserInfo, ReadM,
-                                                   argument, auto, eitherReader,
-                                                   execParser, footerDoc,
-                                                   fullDesc, header, help,
-                                                   helper, info, long, metavar,
-                                                   option, progDesc, short,
-                                                   showDefault, simpleVersioner,
-                                                   strOption, value, (<**>))
-import           Paths_biblegateway               (version)
-import           Prettyprinter                    (Pretty (pretty))
-import           System.Directory                 (XdgDirectory (XdgData),
-                                                   getXdgDirectory)
+import qualified Data.Attoparsec.Text as AT
+import           Data.Char            (isAlphaNum)
+import           Data.Text            (Text)
+import qualified Data.Text            as T
+import           Data.Version         (showVersion)
+import           Numeric.Natural      (Natural)
+import           Options.Applicative  (Alternative (many, some, (<|>)), Parser,
+                                       ParserInfo, ReadM, argument, auto,
+                                       eitherReader, execParser, footerDoc,
+                                       fullDesc, header, help, helper, info,
+                                       long, metavar, option, progDesc, short,
+                                       showDefault, simpleVersioner, strOption,
+                                       value, (<**>))
+import           Paths_biblegateway   (version)
+import           Prettyprinter        (Pretty (pretty))
+import           System.Directory     (XdgDirectory (XdgData), getXdgDirectory)
 
 type Book = Text
 type Chapter = Int
@@ -35,6 +29,9 @@ defaultVersionName = "RSVCE"
 versionStr :: String
 versionStr = "biblegateway " <> showVersion version
 
+data Query = Reference Reference | Search Search
+ deriving (Show, Eq)
+
 data Reference = Book Book
                | BookChapter Book Chapter
                | BookChapterRange Book Chapter Chapter
@@ -43,11 +40,16 @@ data Reference = Book Book
                | BookChaptersVerseRange Book Chapter Verse Chapter Verse
  deriving (Show, Eq)
 
+data Search = SearchWhole Text
+            | SearchBook Book Text
+            | SearchBookChapter Book Chapter Text
+ deriving (Show, Eq)
+
 data Settings = Settings
-  { baseDir        :: FilePath
-  , bibleVersion   :: Text
-  , textWidth      :: Natural
-  , bibleReference :: [Reference]
+  { baseDir      :: FilePath
+  , bibleVersion :: Text
+  , textWidth    :: Natural
+  , bibleQueries :: [Query]
   }
  deriving (Show, Eq)
 
@@ -78,10 +80,17 @@ opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper <**> simpl
            \        Range of verses in a book chapter\n\
            \    <Book>:<Chapter>:<Verse>-<Chapter>:<Verse>\n\
            \        Range of chapters and verses in a book\
+           \\n\
+           \    /<Search>\n\
+           \        All verses that match a pattern\n\
+           \    <Book>/<Search>\n\
+           \        All verses in a book that match a pattern\n\
+           \    <Book>:<Chapter>/<Search>\n\
+           \        All verses in a chapter of a book that match a pattern\n\
            \"
 
 settingsParser :: FilePath -> Parser Settings
-settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionNameParser <*> textWidthParser <*> referenceParser
+settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionNameParser <*> textWidthParser <*> queryParser
 
 baseDirParser :: FilePath -> Parser FilePath
 baseDirParser defaultBaseDir = strOption
@@ -110,36 +119,52 @@ textWidthParser = option auto
     <> help "Use WIDTH as the rendered text width"
     <> showDefault )
 
-referenceParser :: Parser [Reference]
-referenceParser = some $ argument parseReference
+queryParser :: Parser [Query]
+queryParser = some $ argument parseQuery
      ( metavar "REFERENCE..." )
 
-parseReference :: ReadM Reference
-parseReference = eitherReader (A.parseOnly reference . B8.pack)
+parseQuery :: ReadM Query
+parseQuery = eitherReader (AT.parseOnly query . T.pack)
 
-reference :: A.Parser Reference
-reference =
-      BookChaptersVerseRange <$> book <*> colon chapter <*> colon verse <*> dash chapter <*> colon verse
-  <|> BookChapterVerseRange  <$> book <*> colon chapter <*> colon verse <*> dash verse
-  <|> BookChapterVerses      <$> book <*> colon chapter <*> colon verseList
-  <|> BookChapterRange       <$> book <*> colon chapter <*> dash chapter
-  <|> BookChapter            <$> book <*> colon chapter
-  <|> Book                   <$> book
-  where verse :: A.Parser Verse
-        verse = decimal
+query :: AT.Parser Query
+query = Reference <$> reference
+    <|> Search    <$> search
+  where reference :: AT.Parser Reference
+        reference =
+              BookChaptersVerseRange <$> book <*> colon chapter <*> colon verse <*> dash chapter <*> colon verse <* AT.endOfInput
+          <|> BookChapterVerseRange  <$> book <*> colon chapter <*> colon verse <*> dash verse <* AT.endOfInput
+          <|> BookChapterVerses      <$> book <*> colon chapter <*> colon verseList <* AT.endOfInput
+          <|> BookChapterRange       <$> book <*> colon chapter <*> dash chapter <* AT.endOfInput
+          <|> BookChapter            <$> book <*> colon chapter <* AT.endOfInput
+          <|> Book                   <$> book <* AT.endOfInput
 
-        chapter :: A.Parser Chapter
-        chapter = decimal
+        search :: AT.Parser Search
+        search =
+              SearchBookChapter      <$> book <*> colon chapter <*> slash searchText <* AT.endOfInput
+          <|> SearchBook             <$> book <*> slash searchText <* AT.endOfInput
+          <|> SearchWhole            <$> slash searchText <* AT.endOfInput
 
-        book :: A.Parser Book
-        book = T.pack . B8.unpack . B8.strip <$> takeTill (\c -> c == (fromIntegral . ord $ ':'))
+        verse :: AT.Parser Verse
+        verse = AT.decimal
 
-        verseList :: A.Parser [Verse]
-        verseList = (:) <$> verse <*> many (char ',' *> verse)
+        chapter :: AT.Parser Chapter
+        chapter = AT.decimal
 
-        colon :: A.Parser a -> A.Parser a
-        colon p = char ':' *> p
+        book :: AT.Parser Book
+        book = AT.takeWhile1 isAlphaNum
 
-        dash :: A.Parser a -> A.Parser a
-        dash p = char '-' *> p
+        verseList :: AT.Parser [Verse]
+        verseList = (:) <$> verse <*> many (AT.char ',' *> verse)
+
+        searchText :: AT.Parser Text
+        searchText = T.cons <$> AT.satisfy isAlphaNum <*> AT.takeText
+
+        colon :: AT.Parser a -> AT.Parser a
+        colon p = AT.char ':' *> p
+
+        dash :: AT.Parser a -> AT.Parser a
+        dash p = AT.char '-' *> p
+
+        slash :: AT.Parser a -> AT.Parser a
+        slash p = AT.char '/' *> p
 
