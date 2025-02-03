@@ -11,8 +11,9 @@ import           Data.List                       (sort, sortOn)
 import           Data.Maybe                      (fromMaybe)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
-import           Data.Text.AhoCorasick.Automaton (AcMachine, CodeUnitIndex,
-                                                  Match (..))
+import           Data.Text.AhoCorasick.Automaton (AcMachine,
+                                                  CaseSensitivity (..),
+                                                  CodeUnitIndex, Match (..))
 import qualified Data.Text.AhoCorasick.Automaton as Aho
 import qualified Data.Text.IO                    as T
 import qualified Data.Text.Utf8                  as UTF
@@ -206,29 +207,17 @@ getSearch biblePath (SearchWhole needle) = do
       books <- sequence <$> mapM (getReferece biblePath . Book) bookList'
       case books of
         Left err     -> return $ Left err
-        Right books' -> do
-          let needle' = UTF.lowerUtf8 needle
-          let searcher = Aho.build [(needle', needle')]
-          let books'' = map (second (filterVerseSearch searcher)) books'
-          return $ Right $ filter (not . null . snd) books''
+        Right books' -> return $ Right (filterBookSearch False needle books')
 getSearch biblePath (SearchBook book needle) = do
    bookTxt <- getReferece biblePath $ Book book
    case bookTxt of
-     Left err     -> return $ Left err
-     Right bookTxt' -> do
-       let needle' = UTF.lowerUtf8 needle
-       let searcher = Aho.build [(needle', needle')]
-       let bookTxt'' = second (filterVerseSearch searcher) bookTxt'
-       return $ Right $ filter (not . null . snd) [bookTxt'']
+     Left err       -> return $ Left err
+     Right bookTxt' -> return $ Right (filterBookSearch False needle [bookTxt'])
 getSearch biblePath (SearchBookChapter book chapter needle) = do
    bookTxt <- getReferece biblePath $ BookChapter book chapter
    case bookTxt of
-     Left err     -> return $ Left err
-     Right bookTxt' -> do
-       let needle' = UTF.lowerUtf8 needle
-       let searcher = Aho.build [(needle', needle')]
-       let bookTxt'' = second (filterVerseSearch searcher) bookTxt'
-       return $ Right $ filter (not . null . snd) [bookTxt'']
+     Left err       -> return $ Left err
+     Right bookTxt' -> return $ Right (filterBookSearch False needle [bookTxt'])
 
 ----
 
@@ -323,14 +312,20 @@ filterVersesFrom from@(fromc, fromv) vs'@((vr@(vrc, _), _):vs)
   | vrc > fromc = Left (InvalidChapterVerse fromc fromv)
   | otherwise = filterVersesFrom from vs
 
-filterVerseSearch :: AcMachine Text -> [((Chapter, Verse), Text)] -> [([(CodeUnitIndex, CodeUnitIndex)], ((Chapter, Verse), Text))]
-filterVerseSearch searcher verses = verses''
-  where allMatches = Aho.runWithCase Aho.IgnoreCase [] (\matches match -> Aho.Step (match : matches))
+filterBookSearch :: Bool -> Text -> [(Book, [((Chapter, Verse), Text)])] -> [(Book, [([(CodeUnitIndex, CodeUnitIndex)], ((Chapter, Verse), Text))])]
+filterBookSearch isCaseSensitive needle books = books'
+  where (caseSensitivity, needle') = if isCaseSensitive then (Aho.CaseSensitive, needle) else (Aho.IgnoreCase, UTF.lowerUtf8 needle)
+        searcher = Aho.build [(needle', UTF.lengthUtf8 needle')]
+        books' = filter (not . null . snd) $ map (second (filterVerseSearch caseSensitivity searcher)) books
+
+filterVerseSearch :: CaseSensitivity -> AcMachine CodeUnitIndex -> [((Chapter, Verse), Text)] -> [([(CodeUnitIndex, CodeUnitIndex)], ((Chapter, Verse), Text))]
+filterVerseSearch caseSensitivity searcher verses = verses''
+  where allMatches = Aho.runWithCase caseSensitivity [] (\matches match -> Aho.Step (match : matches))
         searches = map (allMatches searcher . snd) verses
         verses' = filter (not . null . fst) $ zip searches verses
-        getMatchIndices :: Match Text -> (CodeUnitIndex, CodeUnitIndex)
+        getMatchIndices :: Match CodeUnitIndex -> (CodeUnitIndex, CodeUnitIndex)
         getMatchIndices match = (matchPos match - len, len)
-          where len = UTF.lengthUtf8 (matchValue match)
+          where len = matchValue match
         verses'' = map (first (map getMatchIndices)) verses'
 
 ----
