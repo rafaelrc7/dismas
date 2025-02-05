@@ -82,7 +82,7 @@ scrapeBookChapter version book chapter = do
 
         paragraphsScraper :: Scraper Verse (Either Error [(Int, Verse)])
         paragraphsScraper = sequence <$> chroots ("p" // "span" @: [ "class" @=~ verseSpanRE ]) verseScraper
-          where verseSpanRE = re ("[[:alpha:]][[:alpha:]][[:alpha:]]-" <> chapter <> "-[[:digit:]]+")
+          where verseSpanRE = re ("[[:alpha:]][[:alpha:]][[:alpha:]]?-" <> chapter <> "-[[:digit:]]+")
 
         verseScraper :: Scraper Verse (Either Error (Int, Verse))
         verseScraper = do
