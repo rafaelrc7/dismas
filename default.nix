@@ -1,13 +1,14 @@
-{ lib
-, haskell
-, haskellPackages
-, less
-, makeWrapper
+{
+  lib,
+  haskell,
+  haskellPackages,
+  less,
+  makeWrapper,
 }:
 let
-  biblegateway = lib.pipe
-    (haskellPackages.callCabal2nix "biblegateway" (lib.cleanSource ./.) { })
-    (with haskell.lib.compose; [ dontHaddock ]);
+  biblegateway = lib.pipe (haskellPackages.callCabal2nix "biblegateway" (lib.cleanSource ./.) { }) (
+    with haskell.lib.compose; [ dontHaddock ]
+  );
 in
 biblegateway.overrideAttrs (attrs: {
   nativeBuildInputs = attrs.nativeBuildInputs ++ [ makeWrapper ];
@@ -16,4 +17,3 @@ biblegateway.overrideAttrs (attrs: {
     wrapProgram $out/bin/bg-rd --set PAGER "${less}/bin/less"
   '';
 })
-

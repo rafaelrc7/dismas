@@ -9,7 +9,8 @@
     };
   };
 
-  outputs = inputs:
+  outputs =
+    inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import inputs.systems;
       imports = [
@@ -17,12 +18,12 @@
         inputs.flake-parts.flakeModules.easyOverlay
       ];
 
-      perSystem = { config, pkgs, ... }:
-        let haskellPackages = pkgs.haskell.packages.ghc96;
+      perSystem =
+        { config, pkgs, ... }:
+        let
+          haskellPackages = pkgs.haskell.packages.ghc96;
         in
         {
-          devShells.default = import ./shell.nix { inherit pkgs haskellPackages; };
-
           packages = rec {
             default = biblegateway;
             biblegateway = pkgs.callPackage ./default.nix { inherit haskellPackages; };
@@ -37,11 +38,14 @@
             inherit (config.packages) biblegateway;
           };
 
+          devShells.default = import ./shell.nix { inherit pkgs haskellPackages; };
+
           treefmt.config = {
             projectRootFile = "flake.nix";
             programs = {
-              nixpkgs-fmt.enable = true;
               cabal-fmt.enable = true;
+              nixfmt.enable = true;
+              prettier.enable = true;
               stylish-haskell.enable = true;
             };
           };
