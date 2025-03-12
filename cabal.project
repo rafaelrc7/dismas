@@ -1,6 +1,6 @@
 packages: ./*.cabal
 
 package dismas
-  debug-info: True
-  optimization: False
+  debug-info: False
+  optimization: True
 
