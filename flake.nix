@@ -25,17 +25,17 @@
         in
         {
           packages = rec {
-            default = biblegateway;
-            biblegateway = pkgs.callPackage ./default.nix { inherit haskellPackages; };
+            default = dismas;
+            dismas = pkgs.callPackage ./default.nix { inherit haskellPackages; };
           };
 
           apps.default = {
             type = "app";
-            program = "${config.packages.biblegateway}/bin/biblegateway";
+            program = "${config.packages.dismas}/bin/dismas";
           };
 
           overlayAttrs = {
-            inherit (config.packages) biblegateway;
+            inherit (config.packages) dismas;
           };
 
           devShells.default = import ./shell.nix { inherit pkgs haskellPackages; };

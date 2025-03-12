@@ -4,12 +4,10 @@
   devTools ? true,
 }:
 let
-  haskell = haskellPackages.extend (
-    final: prev: { biblegateway = pkgs.callPackage ./default.nix { }; }
-  );
+  haskell = haskellPackages.extend (final: prev: { dismas = pkgs.callPackage ./default.nix { }; });
 in
 haskell.shellFor {
-  packages = p: [ p.biblegateway ];
+  packages = p: [ p.dismas ];
   nativeBuildInputs =
     [
       (haskell.ghc.withPackages (p: [

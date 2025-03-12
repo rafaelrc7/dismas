@@ -9,7 +9,7 @@ import           Options.Applicative (Parser, ParserInfo, execParser, fullDesc,
                                       progDesc, short, showDefault,
                                       simpleVersioner, strOption, switch, value,
                                       (<**>))
-import           Paths_biblegateway  (version)
+import           Paths_dismas        (version)
 import           System.Directory    (XdgDirectory (XdgData), getXdgDirectory)
 
 defaultLongName :: Text
@@ -19,7 +19,7 @@ defaultShortName :: Text
 defaultShortName = "RSVCE"
 
 versionStr :: String
-versionStr = "biblegateway " <> showVersion version
+versionStr = "dismas " <> showVersion version
 
 data Settings = Settings
   { baseDir          :: FilePath
@@ -38,7 +38,7 @@ opts :: FilePath -> ParserInfo Settings
 opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper <**> simpleVersioner versionStr)
   (  fullDesc
   <> progDesc "Download bibles from biblegateway.com"
-  <> header "bg-dl" )
+  <> header "dismas-dl" )
 
 settingsParser :: FilePath -> Parser Settings
 settingsParser defaultBaseDir = Settings <$> baseDirParser defaultBaseDir <*> versionShortNameParser <*> versionLongNameParser <*> noConfirmParser

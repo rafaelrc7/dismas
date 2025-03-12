@@ -15,7 +15,7 @@ import           Options.Applicative  (Alternative (many, some, (<|>)), Parser,
                                        long, metavar, option, progDesc, short,
                                        showDefault, simpleVersioner, strOption,
                                        value, (<**>))
-import           Paths_biblegateway   (version)
+import           Paths_dismas         (version)
 import           Prettyprinter        (Pretty (pretty))
 import           System.Directory     (XdgDirectory (XdgData), getXdgDirectory)
 
@@ -27,7 +27,7 @@ defaultVersionName :: Text
 defaultVersionName = "RSVCE"
 
 versionStr :: String
-versionStr = "biblegateway " <> showVersion version
+versionStr = "dismas " <> showVersion version
 
 data Query = Reference Reference | Search Search
  deriving (Show, Eq)
@@ -61,7 +61,7 @@ parseCLIArgs = do
 opts :: FilePath -> ParserInfo Settings
 opts defaultBaseDir = info (settingsParser defaultBaseDir <**> helper <**> simpleVersioner versionStr)
    ( fullDesc
-  <> header "Bible reader"
+  <> header "dismas"
   <> progDesc "Read offline holy bible"
   <> footerDoc (Just  (pretty referenceHelp)) )
   where referenceHelp :: String

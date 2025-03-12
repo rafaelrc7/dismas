@@ -1,6 +1,6 @@
 packages: ./*.cabal
 
-package biblegateway
+package dismas
   debug-info: True
   optimization: False
 
